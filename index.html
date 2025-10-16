@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Magic S Quiz</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #b3e5fc, #e1f5fe);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .quiz-container {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 500px;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    h1 {
+      color: #0277bd;
+      margin-bottom: 10px;
+    }
+
+    button {
+      background: #0277bd;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #015a8c;
+    }
+
+    .option {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      background: #e3f2fd;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .option:hover {
+      background: #bbdefb;
+      border-color: #0277bd;
+    }
+
+    .option.correct {
+      background: #c8e6c9;
+      border-color: #2e7d32;
+    }
+
+    .option.wrong {
+      background: #ffcdd2;
+      border-color: #c62828;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: #bbdefb;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: #0277bd;
+      transition: width 0.3s;
+    }
+
+    #feedback {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    #score-screen {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <h1>🧙‍♂️ The Magic S Quiz</h1>
+
+    <div id="start-screen">
+      <p>Practica las reglas de <strong>-S</strong>, <strong>-ES</strong> e <strong>-IES</strong> en oraciones afirmativas, negativas e interrogativas.</p>
+      <button onclick="startQuiz()">Comenzar</button>
+    </div>
+
+    <div id="quiz-screen" class="hidden">
+      <div class="progress-bar">
+        <div class="progress" id="progress"></div>
+      </div>
+      <h2 id="question"></h2>
+      <div id="options"></div>
+      <p id="feedback"></p>
+      <button id="nextBtn" class="hidden" onclick="nextQuestion()">Siguiente</button>
+    </div>
+
+    <div id="score-screen" class="hidden">
+      <h2>🎉 ¡Has terminado el quiz!</h2>
+      <p id="final-score"></p>
+      <button onclick="restartQuiz()">Jugar otra vez</button>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      // Afirmativas
+      { q: "He ____ (play) football every Sunday.", options: ["play", "plays", "plaies"], correct: 1, rule: "Verbos normales agregan -S." },
+      { q: "She ____ (watch) TV every night.", options: ["watchs", "watches", "watch"], correct: 1, rule: "Verbos terminados en -ch, -sh, -ss, -x, -o agregan -ES." },
+      { q: "He ____ (study) English every day.", options: ["studies", "studys", "study"], correct: 0, rule: "Consonante + Y cambia a -IES." },
+      // Negativas
+      { q: "She ____ play tennis on weekends.", options: ["don’t", "doesn’t", "isn’t"], correct: 1, rule: "Usamos 'doesn’t' con he/she/it + verbo base." },
+      { q: "He ____ like pizza.", options: ["doesn’t", "don’t", "isn’t"], correct: 0, rule: "Recuerda: 'doesn’t' + verbo base (no 'likes')." },
+      // Interrogativas
+      { q: "____ he work every day?", options: ["Do", "Does", "Is"], correct: 1, rule: "Usamos 'Does' con he/she/it." },
+      { q: "____ she go to school by bus?", options: ["Do", "Does", "Did"], correct: 1, rule: "Usamos 'Does' para preguntas en presente." },
+      { q: "What time ____ she wake up?", options: ["do", "does", "is"], correct: 1, rule: "La forma correcta es 'does'." }
+    ];
+
+    let current = 0;
+    let score = 0;
+
+    const startScreen = document.getElementById("start-screen");
+    const quizScreen = document.getElementById("quiz-screen");
+    const scoreScreen = document.getElementById("score-screen");
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const feedbackEl = document.getElementById("feedback");
+    const nextBtn = document.getElementById("nextBtn");
+    const progress = document.getElementById("progress");
+    const finalScore = document.getElementById("final-score");
+
+    function startQuiz() {
+      startScreen.classList.add("hidden");
+      quizScreen.classList.remove("hidden");
+      current = 0;
+      score = 0;
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      feedbackEl.textContent = "";
+      nextBtn.classList.add("hidden");
+      optionsEl.innerHTML = "";
+
+      if (current < questions.length) {
+        const q = questions[current];
+        questionEl.textContent = q.q;
+
+        q.options.forEach((opt, i) => {
+          const btn = document.createElement("button");
+          btn.textContent = opt;
+          btn.className = "option";
+          btn.onclick = () => checkAnswer(i, btn);
+          optionsEl.appendChild(btn);
+        });
+
+        progress.style.width = `${(current / questions.length) * 100}%`;
+      } else {
+        endQuiz();
+      }
+    }
+
+    function checkAnswer(selected, btn) {
+      const q = questions[current];
+      const options = document.querySelectorAll(".option");
+
+      options.forEach((b, i) => {
+        b.disabled = true;
+        if (i === q.correct) b.classList.add("correct");
+        else if (i === selected) b.classList.add("wrong");
+      });
+
+      if (selected === q.correct) {
+        score++;
+        feedbackEl.textContent = "✅ ¡Correcto! " + q.rule;
+        feedbackEl.style.color = "green";
+      } else {
+        feedbackEl.textContent = "❌ Incorrecto. " + q.rule;
+        feedbackEl.style.color = "red";
+      }
+
+      current++;
+      nextBtn.classList.remove("hidden");
+      progress.style.width = `${(current / questions.length) * 100}%`;
+    }
+
+    function endQuiz() {
+      quizScreen.classList.add("hidden");
+      scoreScreen.classList.remove("hidden");
+      finalScore.innerHTML = `Tu puntaje final es <strong>${score}</strong> de <strong>${questions.length}</strong>.`;
+    }
+
+    function restartQuiz() {
+      scoreScreen.classList.add("hidden");
+      startScreen.classList.remove("hidden");
+      progress.style.width = "0%";
+    }
+  </script>
+</body>
+</html>
